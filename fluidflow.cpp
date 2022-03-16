@@ -10,17 +10,30 @@ Ghia et al. in
   High-Re solutions for incompressible flow using the Navier-Stokes equations
   and a multigrid method. Journal of computational physics, 48(3), pp.387-411.
 
-This should run in <1 min on a reasonably fast machine.
+This should run in <1 min on a reasonably fast machine (no output).
 Final output for the benchmark should give
 MSE=0.000268502
-Sum of Ghia's speeds: 4.37431
+Average relative error: .000982106
 **********/
+
+/*******************
+to convert png files to a lossless mp4:
+ffmpeg -framerate 50 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 output2.mp4
+*******************/
 
 #include <cmath>
 #include <iostream>
 #include <filesystem>
 #include <chrono>
+#include <algorithm>
+#include <Magick++.h>
 #include "src/mesh2d.h"
+
+bool make_file=0;//write pressure and velocity matrices to file?
+bool make_vid=0;//make a video?
+double fps=5;//approx frame rate for video output
+double min_col=0;//sets color scale for image output
+double max_col=0.99;
 
 //set constants for dimension, runtime, fluid properties
 double length=4;
@@ -29,7 +42,6 @@ double colpts=257;
 double rowpts=257;
 double sim_time=150;
 double CFL=0.8;
-int skip_iter=100;
 double rho=1;
 double mu=0.01;
 
@@ -41,47 +53,68 @@ Boundary noslip=Boundary(Dirichlet,0);
 Boundary zeroflux=Boundary(Neumann,0);
 Boundary pressureatm=Boundary(Dirichlet,0);
 
-
+// given int n,m returns a string which is the base-10 expression of
+// n with zeros prepended, to be of length m.
+std::string pad_int(int n, int m) {
+  std::string str1=std::to_string(n);
+  std::string str2=(str1.length()>=m)?"":std::string(m-str1.length(),'0');
+  return str2+str1;
+}
 
 int main() {
+
+//gives Magick package knowledge of the working directory.
+Magick::InitializeMagick(nullptr);
 
 //initialize the mesh2d object
 mesh2d mesh=mesh2d(rowpts,colpts);
 mesh.setDims(4,4);
 mesh.setFluid(rho,mu);
+mesh.set_CFL(CFL);
+mesh.SetUBoundary(noslip,noslip,flow,noslip);
+mesh.SetVBoundary(noslip,noslip,noslip,noslip);
+mesh.SetPBoundary(zeroflux,zeroflux,pressureatm,zeroflux);
 
 //create an empty directory /res for output
+if (make_vid||make_file) {
 if (!std::filesystem::is_directory("res") || !std::filesystem::exists("res"))
   std::filesystem::create_directory("res");
 for (auto& path: std::filesystem::directory_iterator("res"))
   std::filesystem::remove_all(path);
+}
 
 auto start = std::chrono::high_resolution_clock::now();
 
-double t=0;double old_t=0;int count=0;
+double max_v=0;
+double min_v=0;
+
+double t=0;int count=0;int padn=std::to_string(int(sim_time*fps+1)).length();
+
+//run the simulation
 while (t<sim_time) {
-  std::cout<<"\rtime is "<<t<<"       "<<std::flush;
-  //if (t-old_t>=1) { old_t=t;std::cout<<"\r"<<"Time Remaining: "<<floor(sim_time-t); }
+  std::cout<<"\rSimulation time is "<<t<<"       "<<std::flush;
 
-  //setting the boundary after each iteration is necessary if there are Neumann conditions.
-  mesh.set_dt(CFL);
-  mesh.SetUBoundary(noslip,noslip,flow,noslip);
-  mesh.SetVBoundary(noslip,noslip,noslip,noslip);
-  mesh.SetPBoundary(zeroflux,zeroflux,pressureatm,zeroflux);
+  mesh.do_iteration();
 
-  mesh.getStarredVelocities();
-  mesh.SolvePoisson();
-  mesh.SolveMomentum();
-  //if (count%skip_iter==0)
-  //mesh.write2file("res/puv_"+std::to_string(count));
+  max_v=std::max(max_v,mesh.max_vel());
+  min_v=std::min(min_v,mesh.min_vel());
+
+  if (make_vid||make_file) { if (t>=(1/fps)*count) {count++;
+    if (make_vid)
+      mesh.write2image("res/img_"+pad_int(count,padn)+".png",min_col,max_col);
+    if (make_file)
+      mesh.write2file("res/puv_"+std::to_string(count));
+  }}
   t+=mesh.get_dt();
-  count++;
 }
 
 std::cout<<"\n";
 auto stop = std::chrono::high_resolution_clock::now();
 auto duration = std::chrono::duration<float>(stop - start);
-std::cout <<"Time elapsed: "<< duration.count()<<"sec\n\n"<< std::endl;
+std::cout <<"Time elapsed: "<< duration.count()<<"sec\n\n";
+
+//std::cout <<"Max velocity: "<<max_v<<"\n";
+//std::cout <<"Min velocity: "<<min_v<<"\n\n";
 
 /////////////////////////////////////////////////////////////////////////
 //perform benchmark test:
@@ -104,10 +137,10 @@ for (int i=0;i<u_g.size();i++) {
 }
 
 std::cout <<"Ghia et al. Cavity test benchmark results:\n";
-std::cout<<"MSE for horizontal component of velocity along vertical median: "
+std::cout<<"  MSE for horizontal component of velocity along vertical median: "
   <<mse/u_g.size()<<"\n";
-std::cout<<"Sum of Ghia's speeds: "
-  <<rel<<"\n";
+std::cout<<"  Average relative error: "
+  <<mse/rel<<"\n\n";
 
 return 1;
 }

@@ -2,27 +2,40 @@
 
 Two-Dimensional Laminar Fluid Flow
 ==================================
-downloaded from [DRW Github](github.com)
 
-This program gives a numerical solution and visualization (TODO) for the 2d Navier-Stokes equations in single phase laminar flow. A "mesh2d" data type is provided (see _src/mesh2d.cpp_, _src/mesh2d.h_) which allows users to set a variety of initial conditions on a rectangle of chosen shape and resolution, as well as set the properties of the fluid. A sample implementation is given in _fluidflow.cpp_ where a lid cavity test is performed, meeting a benchmark of Ghia et al. (1982) to a relative error of about 0.1%.
+This program gives a numerical solution and visualization for the 2d Navier-Stokes equations in single phase laminar flow. A "mesh2d" data type is provided (see _src/mesh2d.cpp_, _src/mesh2d.h_) which allows users to set a variety of initial conditions on a rectangle of chosen shape and resolution, as well as set the properties of the fluid. A sample simulation is given in _fluidflow.cpp_ where a lid cavity test is performed, meeting a benchmark of Ghia et al. (1982) to a relative error of about 0.1%.
 
 If the system requirements are met (see the appropriate section below) this can be compiled/run by navigating to the root directory of the project and running
 
     make
     ./fluidflow
 
-This is a C++ adaptation of Gaurav Deshmukh's project available on
+Output options
+--------------
+
+A method _write2file()_ is provided to print velocity and pressure matrices to file and there is a method _write2image()_ to produce colored images representing the fluid flow. The following options can be set for visual output in the file _fluidflow.cpp_:
+
+* _bool make_vid_: set this to 1 to produce png files in the _res_ folder, representing the fluid flow
+* _double fps_: this will indicate how many times per second (in simulation time) an image should be produced
+* _double min_col, max_col_: these give the coloration scale. Images contain colors from magenta (representing zero velocity) to red (representing max velocity). Any velocity outside this range will be colored white. Run the program once without the _make_vid_ flag to find the max velocity.
+
+Once images have been produced, ffmpeg users might create a lossless video from the output:
+
+    ffmpeg -framerate 50 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 output.mp4
+
+Use of the _write2file()_ method is controlled in _fluidflow.cpp_ by a _make_file_ flag. For more information on both of these methods, see documentation in _mesh2d.cpp_.
+
+Differences from Predecessor
+----------------------------
+This is originally a C++ adaptation of Gaurav Deshmukh's project available on
 [Github](https://github.com/gauravsdeshmukh/FlowPy)
 with some exposition at
 [towardsdatascience.com](https://towardsdatascience.com/computational-fluid-dynamics-using-python-modeling-laminar-flow-272dad1ebec).
 
-
-Differences from Predecessor
-----------------------------
-1. When no graphics are output, this implementation runs in just under 1/3 the time of the above reference using the 150 second 257x257 lid cavity test. This puts operation speeds well under real-time.
-2. Use of C++ classes and the elimination of code duplication in the computation of derivatives reduces program length by more than one third.
+* When no graphics are output, this implementation runs in just under 1/3 the time of the above reference using the 150 second 257x257 lid cavity test. This puts operation speeds well under real-time.
+* Use of C++ classes and the elimination of code duplication in the computation of derivatives reduces program length by more than one third.
 * Error fixed in SetPBoundary (see _mesh2d.h_), which happens not to effect Gaurav's lid cavity test due to its particular initial conditions.
-* A custom visualization is used in place of python's mathplotlib (TODO).
+* A custom visualization is used in place of python's mathplotlib.
 
 
 System Requirements
@@ -43,4 +56,3 @@ If you are compiling this, the final visualization requires imagemagick/magick++
 TODO
 ----
 1. This code makes no guarantee of exception safety.
-2. There is an unfulfilled promise of graphics output -- coming soon!

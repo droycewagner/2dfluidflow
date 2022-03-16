@@ -27,28 +27,39 @@ private:
   double rho, mu, CFL;
   double dx, dy, dt;
   int nrow, ncol, nr, nc;
+  Boundary u_l, u_r, u_t, u_b;
+  Boundary v_l, v_r, v_t, v_b;
   Boundary p_l, p_r, p_t, p_b;
   matr D_y(const matr& m);
   matr D_x(const matr& m);
   matr D_yy(const matr& m);
   matr D_xx(const matr& m);
   matr D_xy(const matr& m);
+  void ResetUBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
+  void ResetVBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
   void ResetPBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
   void copyBoundary(const matr&a, matr&b);
+  std::tuple<double,double,double> rainbow_scale(double vl, double min, double max);
+  void getStarredVelocities();
+  void SolvePoisson();
+  void SolveMomentum();
+  void set_dt();
+
 public:
   mesh2d(int a, int b);
   void setDims(double length, double breadth);
   void setFluid(double rho1, double mu1);
-  void set_dt(const double CFL);
+  void set_CFL(const double CFL1);
   double get_dt();
   void SetUBoundary(Boundary left, Boundary right, Boundary bottom, Boundary top);
   void SetVBoundary(Boundary left, Boundary right, Boundary bottom, Boundary top);
   void SetPBoundary(Boundary left, Boundary right, Boundary bottom, Boundary top);
-  void getStarredVelocities();
-  void SolvePoisson();
-  void SolveMomentum();
   matr get_u();
   void write2file(std::string filename);
+  void write2image(std::string filename, double min, double max);
+  double max_vel();
+  double min_vel();
+  void do_iteration();
 };
 
 #endif
