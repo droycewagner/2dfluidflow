@@ -4,10 +4,6 @@
 #include <iostream>
 #include <tuple>
 
-//shorthand for a column/row of ones.
-matr onec(int n) {return matr::Ones(n,1);}
-matr oner(int n) {return matr::Ones(1,n);}
-
 Boundary::Boundary(int der1,double val1) {
   val=val1;
   der=der1;
@@ -19,10 +15,13 @@ double Boundary::value() {return val;}
 
 int Boundary::deriv() {return der;}
 
-mesh2d::mesh2d(int a, int b) {
+matr mesh2d::onec(const int n) {return matr::Ones(n,1);}
+matr mesh2d::oner(const int n) {return matr::Ones(1,n);}
+
+mesh2d::mesh2d(const int a, const int b) {
   double rho, mu, CFL;
-  nrow=a+2;ncol=b+2;
-  nr=a;nc=b;
+  nrow=abs(a)+2;ncol=abs(b)+2;
+  nr=abs(a);nc=abs(b);
   u=matr::Zero(nrow,ncol);
   v=matr::Zero(nrow,ncol);
   p=matr::Zero(nrow,ncol);
@@ -32,12 +31,12 @@ mesh2d::mesh2d(int a, int b) {
   v_face=matr::Zero(a,b);
 }
 
-void mesh2d::setDims (double length, double breadth) {
+void mesh2d::setDims (const double length, const double breadth) {
   dx=length/(nc-1);
   dy=breadth/(nr-1);
 }
 
-void mesh2d::setFluid(double rho1, double mu1) {
+void mesh2d::setFluid(const double rho1, const double mu1) {
   rho=rho1;mu=mu1;
 }
 
@@ -109,28 +108,22 @@ void mesh2d::ResetPBoundary(Boundary left, Boundary right, Boundary top, Boundar
 
 //Compute 1st derivative in y
 matr mesh2d::D_y(const matr& m) {
-  return (m.block(2,1,nr,nc)
-    -m.block(0,1,nr,nc))/(2*dy);
+  return (m.block(2,1,nr,nc)-m.block(0,1,nr,nc))/(2*dy);
 }
 
 //Compute 1st derivative in x
 matr mesh2d::D_x(const matr& m) {
-  return (m.block(1,2,nr,nc)
-    -m.block(1,0,nr,nc))/(2*dx);
+  return (m.block(1,2,nr,nc)-m.block(1,0,nr,nc))/(2*dx);
 }
 
 //Compute 2nd derivative in y
 matr mesh2d::D_yy(const matr& m) {
-  return (m.block(2,1,nr,nc)
-    -2*m.block(1,1,nr,nc)
-    +m.block(0,1,nr,nc))/(pow(dy,2));
+  return (m.block(2,1,nr,nc)-2*m.block(1,1,nr,nc)+m.block(0,1,nr,nc))/(pow(dy,2));
 }
 
 //Compute 2nd derivative in x
 matr mesh2d::D_xx(const matr& m) {
-  return (m.block(1,2,nr,nc)
-    -2*m.block(1,1,nr,nc)
-    +m.block(1,0,nr,nc))/(pow(dx,2));
+  return (m.block(1,2,nr,nc)-2*m.block(1,1,nr,nc)+m.block(1,0,nr,nc))/(pow(dx,2));
 }
 
 //Compute mixed partial derivative
@@ -171,12 +164,9 @@ void mesh2d::SolvePoisson() {
   double factor=1/(2/pow(dx,2)+2/pow(dy,2));
 
   for (int i=0;i<=500;++i) {
-    if (tol>=error) {
-      break;}
+    if (tol>=error) break;
     matr p_old=p;
-    p_xy=D_xy(p);
-    p.block(1,1,nr,nc)=p_xy*factor-
-      (rho*factor/dt)*(D_x(u_star)+D_y(v_star));
+    p.block(1,1,nr,nc)=D_xy(p)*factor-(rho*factor/dt)*(D_x(u_star)+D_y(v_star));
     error=(p-p_old).array().abs().maxCoeff();
     ResetPBoundary(p_l,p_r,p_t,p_b);//necessary if there are Neumann conditions.
   }
@@ -190,13 +180,15 @@ void mesh2d::SolveMomentum() {
 }
 
 //writes to filename three tab-separated columns, giving the inner parts of the
-//matrices p, u, v, flattened by concatenating successive rows. 
-void mesh2d::write2file(std::string filename) {
+//matrices p, u, v, flattened by concatenating successive rows.
+void mesh2d::write2file(const std::string filename) {
   std::ofstream outfile;
   outfile.open (filename);
-  for (int r=1;r<nrow-1;++r) { for (int c=1;c<ncol-1;++c) {
-    outfile<<p(r,c)<<"\t"<<u(r,c)<<"\t"<<v(r,c)<<"\n";
-  }}
+  for (int r=1;r<nrow-1;++r) {
+    for (int c=1;c<ncol-1;++c) {
+      outfile<<p(r,c)<<"\t"<<u(r,c)<<"\t"<<v(r,c)<<"\n";
+    }
+  }
   outfile.close();
   return;
 }
@@ -227,8 +219,7 @@ rainbow_scale above. The function
 (3) places short lines (vectors) to represent the velocity direction (if the velocity is nonzero)
 (4) places a white dot at the base of each vector
 *********************************/
-void mesh2d::write2image(std::string filename, double min, double max) {
-
+void mesh2d::write2image(const std::string filename, const double min, const double max) {
   //create a grid to place flow vectors
   std::vector<int> xpos, ypos;
   int len=7;int sp=2;
@@ -236,21 +227,19 @@ void mesh2d::write2image(std::string filename, double min, double max) {
   for (int i=len+sp;i<nc-sp;i+=2*len+sp) ypos.push_back(i);
 
   //find speed at eaceh point of the grid
-  //TODO: only need speed at the coordinates 'xpos' 'ypos'
-  matr vel=(u.cwiseProduct(u)
-    +v.cwiseProduct(v))
-    .array().sqrt().matrix().block(1,1,nr,nc);
+  matr vel=(u.cwiseProduct(u)+v.cwiseProduct(v)).array().sqrt().matrix().block(1,1,nr,nc);
 
   //create image
   Magick::Image image( Magick::Geometry(nr,nc),Magick::Color(MaxRGB,MaxRGB,MaxRGB,0));
 
   //create rainbow-colored background to represent velocity at each grid point.
   std::tuple<double,double,double> col;
-  for (int i=0;i<nr;i++) {for (int j=0;j<nc;j++) {
-    col=rainbow_scale(vel.coeff(i,j),min,max);
-    image.pixelColor(i,j,Magick::Color(std::get<0>(col)*MaxRGB,std::get<1>(col)*MaxRGB,
-      std::get<2>(col)*MaxRGB,MaxRGB));
-  }}
+  for (int i=0;i<nr;i++) {
+    for (int j=0;j<nc;j++) {
+      col=rainbow_scale(vel.coeff(i,j),min,max);
+      image.pixelColor(i,j,Magick::Color(std::get<0>(col)*MaxRGB,std::get<1>(col)*MaxRGB,std::get<2>(col)*MaxRGB,MaxRGB));
+    }
+  }
 
   //add lines representing velocity vectors along a grid
   image.strokeColor("black");
@@ -262,7 +251,8 @@ void mesh2d::write2image(std::string filename, double min, double max) {
   for (auto & x : xpos) {for (auto & y : ypos) {
     vv={u.coeff(x+1,y+1),v.coeff(x+1,y+1)};
     if (vv.first!=0&&vv.second!=0)
-    drawList.push_back(Magick::DrawableLine(x,y,x+int(len*vv.first/vel.coeff(x,y)),y+int(len*vv.second/vel.coeff(x,y))));
+      drawList.push_back(Magick::DrawableLine(x,y,x+int(len*vv.first/vel.coeff(x,y)),
+                                              y+int(len*vv.second/vel.coeff(x,y))));
   }}
   image.draw(drawList);
 
@@ -281,15 +271,15 @@ void mesh2d::write2image(std::string filename, double min, double max) {
 }
 
 double mesh2d::max_vel() {
-return (u.block(1,1,nr,nc).cwiseProduct(u.block(1,1,nr,nc))
-  +v.block(1,1,nr,nc).cwiseProduct(v.block(1,1,nr,nc)))
-  .array().sqrt().maxCoeff();
+  return (u.block(1,1,nr,nc).cwiseProduct(u.block(1,1,nr,nc))
+    +v.block(1,1,nr,nc).cwiseProduct(v.block(1,1,nr,nc)))
+    .array().sqrt().maxCoeff();
 }
 
 double mesh2d::min_vel() {
-return (u.block(1,1,nr,nc).cwiseProduct(u.block(1,1,nr,nc))
-  +v.block(1,1,nr,nc).cwiseProduct(v.block(1,1,nr,nc)))
-  .array().sqrt().minCoeff();
+  return (u.block(1,1,nr,nc).cwiseProduct(u.block(1,1,nr,nc))
+    +v.block(1,1,nr,nc).cwiseProduct(v.block(1,1,nr,nc)))
+    .array().sqrt().minCoeff();
 }
 
 //performs an iteration of one time step

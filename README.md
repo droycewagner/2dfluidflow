@@ -13,7 +13,7 @@ If the system requirements are met (see the appropriate section below) this can 
 Output Options
 --------------
 
-A method _write2file()_ is provided to print velocity and pressure matrices to file and there is a method _write2image()_ to produce colored images representing the fluid flow. The following options can be set for visual output in the file _fluidflow.cpp_:
+A method _write2file()_ is provided to print velocity and pressure matrices to file and there is a method _write2image_ to produce colored images representing the fluid flow. The following options can be set for visual output in the file _fluidflow.cpp_:
 
 * _bool make_vid_: set this to 1 to produce png files in the _res_ folder, representing the fluid flow
 * _double fps_: this will indicate how many times per second (in simulation time) an image should be produced
@@ -25,6 +25,10 @@ The function _write2image_ does the following:
 2. colors each pixel by speed, based on _rainbow_scale_,
 3. places short black lines (vectors) to represent the velocity direction (if the velocity is nonzero),
 4. places a white dot at the base of each vector.
+
+For example, the following image is produced from the lid cavity test near the 25 second mark.
+
+![Sample from lid cavity test](pic/sample.png?raw=true)
 
 Once images have been produced, ffmpeg users might create a lossless video from the output:
 
@@ -58,8 +62,3 @@ __Important__: use of the -Ofast (or -O3) flag in the makefile is crucial; this 
 The final visualization requires imagemagick/magick++. On some linux systems, you can meet this dependency by installing the packages:
 
     sudo apt install imagemagick libgraphicsmagick++1-dev graphicsmagick-libmagick-dev-compat
-
-
-TODO
-----
-1. This code makes no guarantee of exception safety.

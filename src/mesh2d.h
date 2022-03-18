@@ -15,7 +15,7 @@ a rectangular region containing fluid.
   rho, mu, CFL: these are constants describing the fluid
   dx,dy: these give the space between points of the mesh
   dt: the timestep
-The various functions defined here are described further in mesh2d.cpp where 
+The various functions defined here are described further in mesh2d.cpp where
 they are implemented.
 
 *******************************************************************************/
@@ -28,18 +28,18 @@ they are implemented.
 #include <fstream>
 #include <eigen3/Eigen/Core>
 
-typedef Eigen::MatrixXd matr;
-
 struct Boundary {
 private:
   double val;
   int der;// val applies to "deriv"th derivative
 public:
-  Boundary (int der1,double val1) ;
+  Boundary (const int der1, const double val1) ;
   Boundary ();
   double value();
   int deriv();
 };
+
+typedef Eigen::MatrixXd matr;
 
 struct mesh2d {
 private:
@@ -59,24 +59,26 @@ private:
   void ResetVBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
   void ResetPBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
   void copyBoundary(const matr&a, matr&b);
-  std::tuple<double,double,double> rainbow_scale(double vl, double min, double max);
+  std::tuple<double,double,double> rainbow_scale(const double vl, const double min, const double max);
   void getStarredVelocities();
   void SolvePoisson();
   void SolveMomentum();
   void set_dt();
+  matr onec(int n);
+  matr oner(int n);
 
 public:
   mesh2d(int a, int b);
-  void setDims(double length, double breadth);
-  void setFluid(double rho1, double mu1);
+  void setDims(const double length, const double breadth);
+  void setFluid(const double rho1, const double mu1);
   void set_CFL(const double CFL1);
   double get_dt();
-  void SetUBoundary(Boundary left, Boundary right, Boundary bottom, Boundary top);
-  void SetVBoundary(Boundary left, Boundary right, Boundary bottom, Boundary top);
-  void SetPBoundary(Boundary left, Boundary right, Boundary bottom, Boundary top);
+  void SetUBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
+  void SetVBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
+  void SetPBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
   matr get_u();
-  void write2file(std::string filename);
-  void write2image(std::string filename, double min, double max);
+  void write2file(const std::string filename);
+  void write2image(const std::string filename, const double min, const double max);
   double max_vel();
   double min_vel();
   void do_iteration();
