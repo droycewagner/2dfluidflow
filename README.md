@@ -28,7 +28,8 @@ The function _write2image_ does the following:
 
 For example, the following image is produced from the lid cavity test near the 25 second mark.
 
-![Sample from lid cavity test](pic/sample.png?raw=true)
+![sample image](https://user-images.githubusercontent.com/65519600/159061419-b3526b1d-a478-41d2-b7b7-8ae345c7f270.png)
+
 
 Once images have been produced, ffmpeg users might create a lossless video from the output:
 
