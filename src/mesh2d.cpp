@@ -189,6 +189,8 @@ void mesh2d::SolveMomentum() {
   v.block(1,1,nr,nc)=v_star.block(1,1,nr,nc)-(dt/rho)*D_y(p);
 }
 
+//writes to filename three tab-separated columns, giving the inner parts of the
+//matrices p, u, v, flattened by concatenating successive rows. 
 void mesh2d::write2file(std::string filename) {
   std::ofstream outfile;
   outfile.open (filename);
@@ -201,10 +203,13 @@ void mesh2d::write2file(std::string filename) {
 
 matr mesh2d::get_u() {return u;}
 
+//gives an RGB triple representing vl's position in the interval [min, max]
+//the return value will be black/white if vl is below/above the above interval.
 std::tuple<double,double,double> mesh2d::rainbow_scale(double vl, double min, double max) {
   double val=(vl-min)/(max-min)*5;//scales from 0-6 if min<vl<max
   val=5-val;
   int maxrgb=1;
+  if (val<0) return {0,0,0};
   if (val<1) return {maxrgb,val*maxrgb,0};//red -> yellow
   else if (val<2) return {maxrgb*(2-val),maxrgb,0};//yellow -> green
   else if (val<3) return {0,maxrgb,maxrgb*(val-2)};//green -> cyan
@@ -214,6 +219,14 @@ std::tuple<double,double,double> mesh2d::rainbow_scale(double vl, double min, do
   else return {maxrgb,maxrgb,maxrgb};//white if val is outside usual range
 }
 
+/*********************************
+This writes an image file to filename. Doubles min, max are used in calling
+rainbow_scale above. The function
+(1) creates an image with the same dimensions as the mesh2d object,
+(2) colors each pixel by speed, based on rainbow_scale
+(3) places short lines (vectors) to represent the velocity direction (if the velocity is nonzero)
+(4) places a white dot at the base of each vector
+*********************************/
 void mesh2d::write2image(std::string filename, double min, double max) {
 
   //create a grid to place flow vectors
@@ -223,6 +236,7 @@ void mesh2d::write2image(std::string filename, double min, double max) {
   for (int i=len+sp;i<nc-sp;i+=2*len+sp) ypos.push_back(i);
 
   //find speed at eaceh point of the grid
+  //TODO: only need speed at the coordinates 'xpos' 'ypos'
   matr vel=(u.cwiseProduct(u)
     +v.cwiseProduct(v))
     .array().sqrt().matrix().block(1,1,nr,nc);

@@ -10,7 +10,7 @@ Ghia et al. in
   High-Re solutions for incompressible flow using the Navier-Stokes equations
   and a multigrid method. Journal of computational physics, 48(3), pp.387-411.
 
-This should run in <1 min on a reasonably fast machine (no output).
+This should run in ~1 min on a reasonably fast machine (no output).
 Final output for the benchmark should give
 MSE=0.000268502
 Average relative error: .000982106
@@ -61,6 +61,7 @@ std::string pad_int(int n, int m) {
   return str2+str1;
 }
 
+
 int main() {
 
 //gives Magick package knowledge of the working directory.
@@ -85,9 +86,6 @@ for (auto& path: std::filesystem::directory_iterator("res"))
 
 auto start = std::chrono::high_resolution_clock::now();
 
-double max_v=0;
-double min_v=0;
-
 double t=0;int count=0;int padn=std::to_string(int(sim_time*fps+1)).length();
 
 //run the simulation
@@ -95,9 +93,6 @@ while (t<sim_time) {
   std::cout<<"\rSimulation time is "<<t<<"       "<<std::flush;
 
   mesh.do_iteration();
-
-  max_v=std::max(max_v,mesh.max_vel());
-  min_v=std::min(min_v,mesh.min_vel());
 
   if (make_vid||make_file) { if (t>=(1/fps)*count) {count++;
     if (make_vid)
@@ -113,11 +108,10 @@ auto stop = std::chrono::high_resolution_clock::now();
 auto duration = std::chrono::duration<float>(stop - start);
 std::cout <<"Time elapsed: "<< duration.count()<<"sec\n\n";
 
-//std::cout <<"Max velocity: "<<max_v<<"\n";
-//std::cout <<"Min velocity: "<<min_v<<"\n\n";
+/************************
+perform benchmark test:
+************************/
 
-/////////////////////////////////////////////////////////////////////////
-//perform benchmark test:
 std::vector<double> x_g,y_g,u_g,v_g;
 
 //Ghia's 16 velocities with corresponding positions along the vertical median

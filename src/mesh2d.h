@@ -1,3 +1,25 @@
+/*******************************************************************************
+Description of Boundary class:
+  This is supposed to represent a boundary condition along one side of the mesh
+  grid. The double val represents the value of the boundary; The int deriv is
+  supposed to indicate the derivate to which the condition applies; we use
+  deriv=0 to represent a Dirichlet boundary condition and deriv=1 to represent
+  a Neumann boundary condition.
+
+Description of mesh2d struct:
+At its core, this is supposed to represent a 2d grid, which in turn represents
+a rectangular region containing fluid.
+  u: a matrix giving horizontal velocity at each point of the grid
+  v: same, for vertical velocity
+  p: same, for pressure
+  rho, mu, CFL: these are constants describing the fluid
+  dx,dy: these give the space between points of the mesh
+  dt: the timestep
+The various functions defined here are described further in mesh2d.cpp where 
+they are implemented.
+
+*******************************************************************************/
+
 #ifndef MESH2D_H
 #define MESH2D_H
 
@@ -21,9 +43,7 @@ public:
 
 struct mesh2d {
 private:
-  matr u, v, p, u_face, v_face, u_star, v_star,
-    u_x, u_y, u_xx, u_yy, v_x, v_y, v_xx, v_yy, u_star_x, v_star_y,
-    p_x, p_y, p_xy;
+  matr u, v, p, u_face, v_face, u_star, v_star;
   double rho, mu, CFL;
   double dx, dy, dt;
   int nrow, ncol, nr, nc;
