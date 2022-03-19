@@ -35,13 +35,15 @@ private:
 public:
   Boundary (const int der1, const double val1) ;
   Boundary ();
-  double value();
-  int deriv();
+  const double& value(void);
+  const int& deriv(void);
 };
 
-typedef Eigen::MatrixXd matr;
+//typedef Eigen::MatrixXd matr;
+//using matr= Eigen::MatrixXd;
 
-struct mesh2d {
+class mesh2d {
+typedef Eigen::MatrixXd matr;
 private:
   matr u, v, p, u_face, v_face, u_star, v_star;
   double rho, mu, CFL;
@@ -72,11 +74,11 @@ public:
   void setDims(const double length, const double breadth);
   void setFluid(const double rho1, const double mu1);
   void set_CFL(const double CFL1);
-  double get_dt();
+  const double& get_dt();
   void SetUBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
   void SetVBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
   void SetPBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
-  matr get_u();
+  const matr& get_u();
   void write2file(const std::string filename);
   void write2image(const std::string filename, const double min, const double max);
   double max_vel();

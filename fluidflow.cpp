@@ -12,8 +12,8 @@ Ghia et al. in
 
 This should run in ~1 min on a reasonably fast machine (no output).
 Final output for the benchmark should give
-MSE=0.000268502
-Average relative error: .000982106
+MSE=0.000268503
+Average relative error: .00098211
 **********/
 
 /*******************

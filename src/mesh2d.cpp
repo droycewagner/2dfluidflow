@@ -11,9 +11,9 @@ Boundary::Boundary(int der1,double val1) {
 
 Boundary::Boundary () {}
 
-double Boundary::value() {return val;}
+const double& Boundary::value() {return val;}
 
-int Boundary::deriv() {return der;}
+const int& Boundary::deriv() {return der;}
 
 matr mesh2d::onec(const int n) {return matr::Ones(n,1);}
 matr mesh2d::oner(const int n) {return matr::Ones(1,n);}
@@ -49,7 +49,7 @@ void mesh2d::set_dt () {
   dt=(denom==0)?CFL*(dx+dy):CFL/denom;
 }
 
-double mesh2d::get_dt() {return dt;}
+const double& mesh2d::get_dt() {return dt;}
 
 //Saves vertical velocity boundary conditions to the mesh2d structure
 void mesh2d::SetUBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom) {
@@ -193,7 +193,7 @@ void mesh2d::write2file(const std::string filename) {
   return;
 }
 
-matr mesh2d::get_u() {return u;}
+const matr& mesh2d::get_u() {return u;}
 
 //gives an RGB triple representing vl's position in the interval [min, max]
 //the return value will be black/white if vl is below/above the above interval.
