@@ -18,7 +18,7 @@ Average relative error: .00098211
 
 /*******************
 to convert png files to a lossless mp4:
-ffmpeg -framerate 50 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 output2.mp4
+ffmpeg -framerate 20 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 output.mp4
 *******************/
 
 #include <cmath>
@@ -31,7 +31,7 @@ ffmpeg -framerate 50 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 outpu
 
 bool make_file=0;//write pressure and velocity matrices to file?
 bool make_vid=0;//make a video?
-double fps=5;//approx frame rate for video output
+double fps=2;//approx frame rate for video output
 double min_col=0;//sets color scale for image output
 double max_col=0.99;
 
@@ -65,6 +65,7 @@ std::string pad_int(int n, int m) {
 int main() {
   //gives Magick package knowledge of the working directory.
   Magick::InitializeMagick(nullptr);
+  //std::ios::sync_with_stdio(false);
 
   //initialize the mesh2d object
   mesh2d mesh=mesh2d(rowpts,colpts);
@@ -94,11 +95,11 @@ int main() {
 
   //run the simulation
   while (t<sim_time) {
-    std::cout<<"\rSimulation time is "<<t<<"       "<<std::flush;
     mesh.do_iteration();
-    if (make_vid||make_file) {
-      if (t>=(1/fps)*count) {
-        count++;
+    if (t>=(1/fps)*count) {
+      count++;
+      std::cout<<"\rSimulation time is "<<t<<"       "<<std::flush;
+      if (make_vid||make_file) {
         if (make_vid)
           mesh.write2image("res/img_"+pad_int(count,padn)+".png",min_col,max_col);
         if (make_file)

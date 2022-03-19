@@ -39,13 +39,14 @@ public:
   const int& deriv(void);
 };
 
-//typedef Eigen::MatrixXd matr;
-//using matr= Eigen::MatrixXd;
+typedef Eigen::MatrixXd matr;
 
 class mesh2d {
-typedef Eigen::MatrixXd matr;
 private:
   matr u, v, p, u_face, v_face, u_star, v_star;
+  //seems to save time having memory allocated for derivatives.
+  matr p_xy;
+  matr u_star_x,v_star_y,u_x,u_y,u_xx,u_yy,v_x,v_y,v_xx,v_yy;
   double rho, mu, CFL;
   double dx, dy, dt;
   int nrow, ncol, nr, nc;

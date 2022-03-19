@@ -29,6 +29,17 @@ mesh2d::mesh2d(const int a, const int b) {
   v_star=matr::Zero(nrow,ncol);
   u_face=matr::Zero(a,b);
   v_face=matr::Zero(a,b);
+  p_xy=matr(a,b);
+  u_star_x=matr(a,b);
+  v_star_y=matr(a,b);
+  u_x=matr(a,b);
+  u_y=matr(a,b);
+  u_xx=matr(a,b);
+  u_yy=matr(a,b);
+  v_x=matr(a,b);
+  v_y=matr(a,b);
+  v_xx=matr(a,b);
+  v_yy=matr(a,b);
 }
 
 void mesh2d::setDims (const double length, const double breadth) {
@@ -143,6 +154,8 @@ void mesh2d::copyBoundary(const matr&a, matr&b) {
 
 //updates u_star and v_star in the mesh2d structure
 void mesh2d::getStarredVelocities() {
+  u_x=D_x(u);u_y=D_y(u);u_xx=D_xx(u);u_yy=D_yy(u);
+  v_x=D_x(v);v_y=D_y(v);v_xx=D_xx(v);v_yy=D_yy(v);
   u_face=(u.block(1,1,nr,nc)+u.block(1,2,nr,nc)
     +u.block(0,1,nr,nc)+u.block(0,2,nr,nc))/4;
   v_face=(v.block(1,1,nr,nc)+v.block(1,0,nr,nc)
@@ -150,11 +163,15 @@ void mesh2d::getStarredVelocities() {
   copyBoundary(u,u_star);
   copyBoundary(v,v_star);
   u_star.block(1,1,nr,nc)=u.block(1,1,nr,nc)
-    -dt*(u.block(1,1,nr,nc).cwiseProduct(D_x(u))+v_face.cwiseProduct(D_y(u)))
-    +dt*(mu/rho)*(D_xx(u)+D_yy(u));
+    //-dt*(u.block(1,1,nr,nc).cwiseProduct(D_x(u))+v_face.cwiseProduct(D_y(u)))
+    //+dt*(mu/rho)*(D_xx(u)+D_yy(u));
+    -dt*(u.block(1,1,nr,nc).cwiseProduct(u_x)+v_face.cwiseProduct(u_y))
+    +dt*(mu/rho)*(u_xx+u_yy);
   v_star.block(1,1,nr,nc)=v.block(1,1,nr,nc)
-    -dt*(u_face.cwiseProduct(D_x(v))+v.block(1,1,nr,nc).cwiseProduct(D_y(v)))
-    +dt*(mu/rho)*(D_xx(v)+D_yy(v));
+    //-dt*(u_face.cwiseProduct(D_x(v))+v.block(1,1,nr,nc).cwiseProduct(D_y(v)))
+    //+dt*(mu/rho)*(D_xx(v)+D_yy(v));
+    -dt*(u_face.cwiseProduct(v_x)+v.block(1,1,nr,nc).cwiseProduct(v_y))
+    +dt*(mu/rho)*(v_xx+v_yy);
 }
 
 //Solves the Poisson equation to get pressure matrix p
@@ -162,11 +179,14 @@ void mesh2d::SolvePoisson() {
   double error=1;
   double tol=.001;
   double factor=1/(2/pow(dx,2)+2/pow(dy,2));
-
+  u_star_x=D_x(u_star);
+  v_star_y=D_y(v_star);
   for (int i=0;i<=500;++i) {
-    if (tol>=error) break;
+    if (tol>=error) {break;}//std::cout<<"iterated "<<i<<"\n";
     matr p_old=p;
-    p.block(1,1,nr,nc)=D_xy(p)*factor-(rho*factor/dt)*(D_x(u_star)+D_y(v_star));
+    p_xy=D_xy(p);
+    p.block(1,1,nr,nc)=p_xy*factor-
+      (rho*factor/dt)*(u_star_x+v_star_y);//(D_x(u_star)+D_y(v_star));//
     error=(p-p_old).array().abs().maxCoeff();
     ResetPBoundary(p_l,p_r,p_t,p_b);//necessary if there are Neumann conditions.
   }
@@ -177,6 +197,18 @@ void mesh2d::SolvePoisson() {
 void mesh2d::SolveMomentum() {
   u.block(1,1,nr,nc)=u_star.block(1,1,nr,nc)-(dt/rho)*D_x(p);
   v.block(1,1,nr,nc)=v_star.block(1,1,nr,nc)-(dt/rho)*D_y(p);
+}
+
+//performs an iteration of one time step
+void mesh2d::do_iteration() {
+  set_dt();
+  //setting the boundary during each iteration is necessary if there are Neumann conditions.
+  ResetUBoundary(u_l,u_r,u_t,u_b);
+  ResetVBoundary(v_l,v_r,v_t,v_b);
+  ResetPBoundary(p_l,p_r,p_t,p_b);
+  getStarredVelocities();
+  SolvePoisson();
+  SolveMomentum();
 }
 
 //writes to filename three tab-separated columns, giving the inner parts of the
@@ -280,16 +312,4 @@ double mesh2d::min_vel() {
   return (u.block(1,1,nr,nc).cwiseProduct(u.block(1,1,nr,nc))
     +v.block(1,1,nr,nc).cwiseProduct(v.block(1,1,nr,nc)))
     .array().sqrt().minCoeff();
-}
-
-//performs an iteration of one time step
-void mesh2d::do_iteration() {
-  set_dt();
-  //setting the boundary during each iteration is necessary if there are Neumann conditions.
-  ResetUBoundary(u_l,u_r,u_t,u_b);
-  ResetVBoundary(v_l,v_r,v_t,v_b);
-  ResetPBoundary(p_l,p_r,p_t,p_b);
-  getStarredVelocities();
-  SolvePoisson();
-  SolveMomentum();
 }
