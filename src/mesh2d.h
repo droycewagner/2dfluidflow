@@ -1,90 +1,108 @@
 /*******************************************************************************
-Description of Boundary class:
-  This is supposed to represent a boundary condition along one side of the mesh
-  grid. The double val represents the value of the boundary; The int deriv is
-  supposed to indicate the derivate to which the condition applies; we use
-  deriv=0 to represent a Dirichlet boundary condition and deriv=1 to represent
-  a Neumann boundary condition.
 
-Description of mesh2d struct:
-At its core, this is supposed to represent a 2d grid, which in turn represents
-a rectangular region containing fluid.
-  u: a matrix giving horizontal velocity at each point of the grid
-  v: same, for vertical velocity
-  p: same, for pressure
-  rho, mu, CFL: these are constants describing the fluid
-  dx,dy: these give the space between points of the mesh
-  dt: the timestep
-The various functions defined here are described further in mesh2d.cpp where
-they are implemented.
+Full documentation is given in the implementation of these classes at mesh2d.cpp
+
+struct rgb_tuple:
+  A simple structure to represent a color as an rgb triple
+
+struct Boundary:
+  This is supposed to represent a boundary condition along one side of the mesh
+  grid. The double 'value' represents the value of the boundary; the enum
+  boundary_type allows the user to specify a Dirichlet or Neumann boundary
+  condition.
+
+class Differentiator:
+  The Differentiator class stores differentials dx, dy as doubles and has member
+  functions to compute any first or second partial derivatives of a matrix.
+
+struct mesh2d:
+  This is supposed to represent a 2d grid simulating a rectangular region
+  containing fluid.
 
 *******************************************************************************/
 
 #ifndef MESH2D_H
 #define MESH2D_H
 
-#include <vector>
-#include <iostream>
-#include <fstream>
 #include <eigen3/Eigen/Core>
 
-struct Boundary {
-private:
-  double val;
-  int der;// val applies to "deriv"th derivative
+struct rgb_tuple {
 public:
-  Boundary (const int der1, const double val1) ;
-  Boundary ();
-  const double& value(void);
-  const int& deriv(void);
+  rgb_tuple ();
+  rgb_tuple (const float r, const float g, const float b);
+  float r();
+  float g();
+  float b();
+private:
+  float red, green, blue;
 };
 
-typedef Eigen::MatrixXd matr;
 
-class mesh2d {
+struct Boundary {
+public:
+  enum boundary_type {Dirichlet, Neumann};
+  Boundary(const boundary_type _type, const double _value);
+  Boundary();
+  double getValue();
+  boundary_type getType();
 private:
-  matr u, v, p, u_face, v_face, u_star, v_star;
-  //seems to save time having memory allocated for derivatives.
-  matr p_xy;
-  matr u_star_x,v_star_y,u_x,u_y,u_xx,u_yy,v_x,v_y,v_xx,v_yy;
+  double value;
+  boundary_type type;
+};
+
+
+class Differentiator {
+private:
+  double dx, dy;
+public:
+  Differentiator();
+  Differentiator(double _dx, double _dy);
+  //use of templates allows one to take matrix derivatives of most Eigen types
+  template <typename T> auto x(const Eigen::DenseBase<T>& m);
+  template <typename T> auto y(const Eigen::DenseBase<T>& m);
+  template <typename T> auto xx(const Eigen::DenseBase<T>& m);
+  template <typename T> auto xy(const Eigen::DenseBase<T>& m);
+  template <typename T> auto yy(const Eigen::DenseBase<T>& m);
+};
+
+
+struct mesh2d {
+  using matrix=Eigen::MatrixXd;
+private:
+  matrix u, v, p;
+  //having memory allocated for some derivatives seems to save time.
+  matrix p_xy;
+  matrix u_star, v_star;
+  matrix u_star_x,v_star_y;
   double rho, mu, CFL;
+  double tolerance;
   double dx, dy, dt;
   int nrow, ncol, nr, nc;
-  Boundary u_l, u_r, u_t, u_b;
-  Boundary v_l, v_r, v_t, v_b;
-  Boundary p_l, p_r, p_t, p_b;
-  matr D_y(const matr& m);
-  matr D_x(const matr& m);
-  matr D_yy(const matr& m);
-  matr D_xx(const matr& m);
-  matr D_xy(const matr& m);
-  void ResetUBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
-  void ResetVBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
-  void ResetPBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
-  void copyBoundary(const matr&a, matr&b);
-  std::tuple<double,double,double> rainbow_scale(const double vl, const double min, const double max);
-  void getStarredVelocities();
-  void SolvePoisson();
-  void SolveMomentum();
-  void set_dt();
-  matr onec(int n);
-  matr oner(int n);
-
+  Boundary u_left, u_right, u_top, u_bottom;
+  Boundary v_left, v_right, v_top, v_bottom;
+  Boundary p_left, p_right, p_top, p_bottom;
+  Boundary default_boundary;
+  Differentiator D;
+  void resetUBoundary();
+  void resetVBoundary();
+  void resetPBoundary();
+  void applyCFL();
 public:
-  mesh2d(int a, int b);
-  void setDims(const double length, const double breadth);
-  void setFluid(const double rho1, const double mu1);
-  void set_CFL(const double CFL1);
-  const double& get_dt();
-  void SetUBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
-  void SetVBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
-  void SetPBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
-  const matr& get_u();
-  void write2file(const std::string filename);
-  void write2image(const std::string filename, const double min, const double max);
-  double max_vel();
-  double min_vel();
-  void do_iteration();
+  mesh2d(const int _nrow, const int _ncol, const double length, const double breadth);
+  void setFluid(const double _rho, const double _mu, const double _CFL);
+  void setTolerance(const double _tolerance);
+  double getDt();
+  void setUBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
+  void setVBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
+  void setPBoundary(Boundary left, Boundary right, Boundary top, Boundary bottom);
+  void writeFile(const std::string& filename);
+  void writeImage(const std::string& filename, const double min, const double max);
+  double maxVel();
+  double minVel();
+  void doIteration();
+  matrix getU();
+  matrix getV();
+  matrix getP();
 };
 
 #endif

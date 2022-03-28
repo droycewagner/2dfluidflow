@@ -10,16 +10,20 @@ If the system requirements are met (see the appropriate section below) this can 
     make
     ./fluidflow
 
+Detailed documentation is given in the implementation _src/mesh2d.cpp_.
+
+
 Output Options
 --------------
 
-A method _write2file()_ is provided to print velocity and pressure matrices to file and there is a method _write2image_ to produce colored images representing the fluid flow. The following options can be set for visual output in the file _fluidflow.cpp_:
+A method _writeFile()_ is provided to print tab-delimited velocity and pressure matrices to file and there is a method _writeImage_ to produce colored images representing the fluid flow. The following options can be set for visual output in the file _fluidflow.cpp_:
 
-* _bool make_vid_: set this to 1 to produce png files in the _res_ folder, representing the fluid flow
-* _double fps_: this will indicate how many times per second (in simulation time) an image should be produced
+* _bool write_file_: when set to 1, writes tab-delimited pressure/velocity matrices to file in a folder named _res_.
+* _bool write_image_: when set to 1, produces png files in the _res_ folder, representing the fluid flow
+* _double fps_: this will indicate how many times per second (in simulation time) an image/file should be produced
 * _double min_col, max_col_: these give the coloration scale. Images contain colors from magenta (representing zero velocity) to red (representing max velocity). A velocity above this range will be colored white and a velocity below the minimum will be colored black. If the max/min velocities are not obvious from the initial condition, the mesh2d class provides methods *max_vel()*, *min_vel()* which can be called after each use of *do_iteration()*.
 
-The function _write2image_ does the following:
+The function _writeImage_ does the following:
 
 1. creates an image with the same dimensions as the mesh2d object,
 2. colors each pixel by speed, based on _rainbow_scale_,
@@ -33,9 +37,8 @@ For example, the following image is produced from the lid cavity test near the 2
 
 Once images have been produced, ffmpeg users might create a lossless video from the output:
 
-    ffmpeg -framerate 50 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 output.mp4
+    ffmpeg -framerate 20 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 output.mp4
 
-Use of the _write2file()_ method is controlled in _fluidflow.cpp_ by a _make_file_ flag. For more information on both of these methods, see documentation in _mesh2d.cpp_.
 
 Differences from Predecessor
 ----------------------------
@@ -44,9 +47,9 @@ This is originally a C++ adaptation of Gaurav Deshmukh's project available on
 with some exposition at
 [towardsdatascience.com](https://towardsdatascience.com/computational-fluid-dynamics-using-python-modeling-laminar-flow-272dad1ebec).
 
-* When no graphics are output, this implementation runs in just under 1/3 the time of the above reference using the 150 second 257x257 lid cavity test. This puts operation speeds well under real-time.
-* Use of C++ classes and the elimination of code duplication in the computation of derivatives reduces program length by more than one third.
-* Error fixed in SetPBoundary (see _mesh2d.h_), which happens not to effect Gaurav's lid cavity test due to its particular initial conditions.
+* When no graphics are output, this implementation runs in under 1/6-th the time of the above reference using the 150 second 257x257 lid cavity test. This puts operation speeds well under real-time. The graphics generation also runs under real-time.
+* Concision is gained from the use of C++ classes and the elimination of code duplication.
+* Error fixed in SetPBoundary (see _mesh2d.h_), which happens not to effect the lid cavity test due to its particular initial conditions.
 * A custom visualization is used in place of python's mathplotlib.
 
 
@@ -60,6 +63,6 @@ The use of std::filesystem requires C++17 or later during compilation.
 
 __Important__: use of the -Ofast (or -O3) flag in the makefile is crucial; this gives a runtime speedup on the order of 20x in the use of Eigen operations.
 
-The final visualization requires imagemagick/magick++. On some linux systems, you can meet this dependency by installing the packages:
+The final visualization requires imagemagick/magick++. On some Linux systems, you can meet this dependency by installing the packages:
 
     sudo apt install imagemagick libgraphicsmagick++1-dev graphicsmagick-libmagick-dev-compat

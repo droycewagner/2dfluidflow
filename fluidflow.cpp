@@ -29,11 +29,11 @@ ffmpeg -framerate 20 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 outpu
 #include <Magick++.h>
 #include "src/mesh2d.h"
 
-bool make_file=0;//write pressure and velocity matrices to file?
-bool make_vid=0;//make a video?
+bool write_file=0;//write pressure and velocity matrices to file?
+bool write_image=0;//make a video?
 double fps=2;//approx frame rate for video output
-double min_col=0;//sets color scale for image output
-double max_col=0.99;
+double min_color=0;//sets color scale for image output
+double max_color=0.99;
 
 //set constants for dimension, runtime, fluid properties
 double length=4;
@@ -46,12 +46,10 @@ double rho=1;
 double mu=0.01;
 
 //create boundary conditions
-int Dirichlet=0;
-int Neumann=1;
-Boundary flow=Boundary(Dirichlet,1);
-Boundary noslip=Boundary(Dirichlet,0);
-Boundary zeroflux=Boundary(Neumann,0);
-Boundary pressureatm=Boundary(Dirichlet,0);
+Boundary flow=Boundary(Boundary::Dirichlet,1);
+Boundary noslip=Boundary(Boundary::Dirichlet,0);
+Boundary zeroflux=Boundary(Boundary::Neumann,0);
+Boundary pressureatm=Boundary(Boundary::Dirichlet,0);
 
 // given int n,m returns a string which is the base-10 expression of
 // n with zeros prepended, to be of length m.
@@ -68,16 +66,15 @@ int main() {
   //std::ios::sync_with_stdio(false);
 
   //initialize the mesh2d object
-  mesh2d mesh=mesh2d(rowpts,colpts);
-  mesh.setDims(4,4);
-  mesh.setFluid(rho,mu);
-  mesh.set_CFL(CFL);
-  mesh.SetUBoundary(noslip,noslip,flow,noslip);
-  mesh.SetVBoundary(noslip,noslip,noslip,noslip);
-  mesh.SetPBoundary(zeroflux,zeroflux,pressureatm,zeroflux);
+  mesh2d mesh=mesh2d(rowpts, colpts, length, breadth);
+  mesh.setFluid(rho,mu,CFL);
+  mesh.setTolerance(.001);
+  mesh.setUBoundary(noslip,noslip,flow,noslip);
+  mesh.setVBoundary(noslip,noslip,noslip,noslip);
+  mesh.setPBoundary(zeroflux,zeroflux,pressureatm,zeroflux);
 
   //create an empty directory /res for output
-  if (make_vid||make_file) {
+  if (write_image||write_file) {
     try {
       if (!std::filesystem::is_directory("res") || !std::filesystem::exists("res"))
         std::filesystem::create_directory("res");
@@ -86,7 +83,7 @@ int main() {
     } catch (const std::exception& e) {
        std::cout << e.what();
        std::cout<<"couldn't make output directory -- won't produce output\n";
-       make_vid=0;make_file=0;
+       write_image=0;write_file=0;
     }
   }
 
@@ -95,18 +92,18 @@ int main() {
 
   //run the simulation
   while (t<sim_time) {
-    mesh.do_iteration();
+    mesh.doIteration();
     if (t>=(1/fps)*count) {
       count++;
       std::cout<<"\rSimulation time is "<<t<<"       "<<std::flush;
-      if (make_vid||make_file) {
-        if (make_vid)
-          mesh.write2image("res/img_"+pad_int(count,padn)+".png",min_col,max_col);
-        if (make_file)
-          mesh.write2file("res/puv_"+std::to_string(count));
+      if (write_image||write_file) {
+        if (write_image)
+          mesh.writeImage("res/img_"+pad_int(count,padn)+".png",min_color,max_color);
+        if (write_file)
+          mesh.writeFile("res/puv_"+std::to_string(count));
       }
     }
-    t+=mesh.get_dt();
+    t+=mesh.getDt();
   }
 
   std::cout<<"\n";
@@ -127,7 +124,7 @@ int main() {
   //compute error from benchmark
   double mse=0;
   double rel=0;
-  auto mid_u=mesh.get_u().block(1,floor(colpts/2),rowpts,1).array();
+  auto mid_u=mesh.getU().block(1,floor(colpts/2),rowpts,1).array();
   for (int i=0;i<u_g.size();i++) {
     mse+=pow(u_g[i]-mid_u.coeff(floor(y_g[i]*rowpts),0),2);
     rel+=abs(u_g[i]);
