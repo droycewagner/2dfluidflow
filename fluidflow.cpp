@@ -29,27 +29,27 @@ ffmpeg -framerate 20 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 outpu
 #include <Magick++.h>
 #include "src/mesh2d.h"
 
-bool write_file=0;//write pressure and velocity matrices to file?
-bool write_image=0;//make a video?
+double sim_time=150;
 double fps=2;//approx frame rate for video output
+bool write_file=0;//write pressure and velocity matrices to file?
+bool write_image=1;//make a video?
 double min_color=0;//sets color scale for image output
 double max_color=0.99;
 
 //set constants for dimension, runtime, fluid properties
-double length=4;
-double breadth=4;
 double colpts=257;
 double rowpts=257;
-double sim_time=150;
-double CFL=0.8;
+double length=4;
+double breadth=4;
 double rho=1;
 double mu=0.01;
+double CFL=0.8;
 
 //create boundary conditions
-Boundary flow=Boundary(Boundary::Dirichlet,1);
-Boundary noslip=Boundary(Boundary::Dirichlet,0);
-Boundary zeroflux=Boundary(Boundary::Neumann,0);
-Boundary pressureatm=Boundary(Boundary::Dirichlet,0);
+Boundary flow=Boundary(Boundary::Condition::Dirichlet,1);
+Boundary noslip=Boundary(Boundary::Condition::Dirichlet,0);
+Boundary zeroflux=Boundary(Boundary::Condition::Neumann,0);
+Boundary pressureatm=Boundary(Boundary::Condition::Dirichlet,0);
 
 // given int n,m returns a string which is the base-10 expression of
 // n with zeros prepended, to be of length m.
@@ -65,8 +65,8 @@ int main() {
   Magick::InitializeMagick(nullptr);
   //std::ios::sync_with_stdio(false);
 
-  //initialize the mesh2d object
-  mesh2d mesh=mesh2d(rowpts, colpts, length, breadth);
+  //initialize the Mesh2D object
+  Mesh2D mesh=Mesh2D(rowpts, colpts, length, breadth);
   mesh.setFluid(rho,mu,CFL);
   mesh.setTolerance(.001);
   mesh.setUBoundary(noslip,noslip,flow,noslip);

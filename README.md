@@ -3,7 +3,7 @@
 Two-Dimensional Laminar Fluid Flow
 ==================================
 
-This program gives a numerical solution and visualization for the 2d Navier-Stokes equations in single phase laminar flow. A "mesh2d" data type is provided (see _src/mesh2d.cpp_, _src/mesh2d.h_) which allows users to set a variety of initial conditions on a rectangle of chosen shape and resolution, as well as set the properties of the fluid. A sample simulation is given in _fluidflow.cpp_ where a lid cavity test is performed, meeting a benchmark of Ghia et al. (1982) to a relative error of about 0.1%.
+This program gives a numerical solution and visualization for the 2d Navier-Stokes equations in single phase laminar flow. A "Mesh2D" data type is provided (see _src/mesh2d.cpp_, _src/mesh2d.h_) which allows users to set a variety of initial conditions on a rectangle of chosen shape and resolution, as well as set the properties of the fluid. A sample simulation is given in _fluidflow.cpp_ where a lid cavity test is performed, meeting a benchmark of Ghia et al. (1982) to a relative error of about 0.1%.
 
 If the system requirements are met (see the appropriate section below) this can be compiled/run by navigating to the root directory of the project and running
 
@@ -21,11 +21,11 @@ A method _writeFile()_ is provided to print tab-delimited velocity and pressure 
 * _bool write_file_: when set to 1, writes tab-delimited pressure/velocity matrices to file in a folder named _res_.
 * _bool write_image_: when set to 1, produces png files in the _res_ folder, representing the fluid flow
 * _double fps_: this will indicate how many times per second (in simulation time) an image/file should be produced
-* _double min_col, max_col_: these give the coloration scale. Images contain colors from magenta (representing zero velocity) to red (representing max velocity). A velocity above this range will be colored white and a velocity below the minimum will be colored black. If the max/min velocities are not obvious from the initial condition, the mesh2d class provides methods *max_vel()*, *min_vel()* which can be called after each use of *do_iteration()*.
+* _double min_col, max_col_: these give the coloration scale. Images contain colors from magenta (representing zero velocity) to red (representing max velocity). A velocity above this range will be colored white and a velocity below the minimum will be colored black.
 
 The function _writeImage_ does the following:
 
-1. creates an image with the same dimensions as the mesh2d object,
+1. creates an image with the same dimensions as the Mesh2D object,
 2. colors each pixel by speed, based on _rainbow_scale_,
 3. places short black lines (vectors) to represent the velocity direction (if the velocity is nonzero),
 4. places a white dot at the base of each vector.
