@@ -59,26 +59,24 @@ private:
   double rho, mu, CFL;
   double tolerance;
   double dx, dy, dt;
-  int nrow, ncol, nr, nc;
-  Boundary default_boundary;
+  int nrow, ncol;
   Boundary u_left, u_right, u_top, u_bottom;
   Boundary v_left, v_right, v_top, v_bottom;
   Boundary p_left, p_right, p_top, p_bottom;
   void resetUBoundary();
   void resetVBoundary();
   void resetPBoundary();
-  void applyCFL();
 public:
   Mesh2D(const int _nrow, const int _ncol, const double length, const double breadth);
   void setFluid(const double _rho, const double _mu, const double _CFL);
   void setTolerance(const double _tolerance);
-  double getDt() const;
   void setUBoundary(const Boundary left, const Boundary right, const Boundary top, const Boundary bottom);
   void setVBoundary(const Boundary left, const Boundary right, const Boundary top, const Boundary bottom);
   void setPBoundary(const Boundary left, const Boundary right, const Boundary top, const Boundary bottom);
   void writeFile(const std::string& filename) const;
   void writeImage(const std::string& filename, const double min, const double max) const;
   void doIteration();
+  double getDt() const;
   const matrix& getU() const;
   const matrix& getV() const;
   const matrix& getP() const;

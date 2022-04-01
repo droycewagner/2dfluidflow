@@ -30,6 +30,8 @@ Boundary::Condition Boundary::getType() const {return type;}
 double Boundary::getValue() const {return value;}
 
 
+//This namespace collects useful functions for the routines of the Mesh2D struct
+//which do not rely on knowledge of any private member.
 namespace {
   //returns a column of ones
   Mesh2D::matrix onesCol(const int n) {return Mesh2D::matrix::Ones(n,1);}
@@ -68,37 +70,30 @@ namespace {
       +m.block(1,0,m.rows()-2,m.cols()-2))/(pow(dx,2));
   }
 
-
   //Compute mixed partial derivative
   auto D_xy(const Mesh2D::matrix& m, double dx, double dy) {
       return (m.block(2,1,m.rows()-2,m.cols()-2)+m.block(0,1,m.rows()-2,m.cols()-2))/pow(dy,2)
         +(m.block(1,2,m.rows()-2,m.cols()-2)+m.block(1,0,m.rows()-2,m.cols()-2))/pow(dx,2);
   }
 
-  //gives an RGB triple representing vl's position in the interval [min, max]
-  //the return value will be black/white if vl is below/above the above interval.
+  //gives an RGB triple representing _val's position in the interval [min, max]
+  //the return value will be black/white if _val is above/below the above interval.
   RGBTuple rainbowScale(double _val, double min, double max) {
     const double val=5-(_val-min)/(max-min)*5;//scales from 0-6 if min<vl<max;
     constexpr float maxrgb=1;
-    if (val<0) return RGBTuple(0,0,0);//black if under range
+    if (val<0) return RGBTuple(0,0,0);//black if above range
     else if (val<1) return RGBTuple(maxrgb,val*maxrgb,0);//red -> yellow
     else if (val<2) return RGBTuple(maxrgb*(2-val),maxrgb,0);//yellow -> green
     else if (val<3) return RGBTuple(0,maxrgb,maxrgb*(val-2));//green -> cyan
     else if (val<4) return RGBTuple(0,maxrgb*(4-val),maxrgb);//cyan -> blue
     else if (val<=5) return RGBTuple(maxrgb*(val-4),0,maxrgb);//blue -> magenta
-    else return RGBTuple(maxrgb,maxrgb,maxrgb);//white if val is outside usual range
+    else return RGBTuple(maxrgb,maxrgb,maxrgb);//white if val under specified range
   }
 }
 
 
 Mesh2D::Mesh2D(const int _nrow, const int _ncol, const double length, const double breadth):
-  rho(1), mu(.01), CFL(.8), tolerance(.001),
-  u_left(this->default_boundary), u_right(this->default_boundary),
-    u_top(this->default_boundary), u_bottom(this->default_boundary),
-  v_left(this->default_boundary), v_right(this->default_boundary),
-    v_top(this->default_boundary), v_bottom(this->default_boundary),
-  p_left(this->default_boundary), p_right(this->default_boundary),
-    p_top(this->default_boundary), p_bottom(this->default_boundary)
+  rho(1), mu(.01), CFL(.8), tolerance(.001)
 {
   //rho, mu are density, viscosity resp.
   //Courant–Friedrichs–Lewy (CFL) criterion controls the time step;
@@ -107,7 +102,7 @@ Mesh2D::Mesh2D(const int _nrow, const int _ncol, const double length, const doub
   //the tolerance is used in a loop at solvePoisson
   double tolerance;
   nrow=abs(_nrow);ncol=abs(_ncol);
-  //u, v, p are horizontal speed, vertical speed, pressure
+  //u, v, p are horizontal speed, vertical speed, pressure.
   u=matrix(nrow+2,ncol+2);
   v=matrix(nrow+2,ncol+2);
   p=matrix(nrow+2,ncol+2);
@@ -115,13 +110,12 @@ Mesh2D::Mesh2D(const int _nrow, const int _ncol, const double length, const doub
   u_star=matrix(nrow+2,ncol+2);
   v_star=matrix(nrow+2,ncol+2);
   //matrix derivatives of p, u_star, v_star
+  //having memory allocated for these seems to save time.
   p_xy=matrix(nrow,ncol);
   u_star_x=matrix(nrow,ncol);
   v_star_y=matrix(nrow,ncol);
   dx=length/(ncol-1);
   dy=breadth/(nrow-1);
-
-  default_boundary=Boundary(Boundary::Condition::Dirichlet,0);
 }
 
 void Mesh2D::setFluid(const double _rho, const double _mu, const double _CFL) {
@@ -132,12 +126,6 @@ void Mesh2D::setFluid(const double _rho, const double _mu, const double _CFL) {
 
 void Mesh2D::setTolerance(const double _tolerance) {
   tolerance=_tolerance;
-}
-
-//finds an appropriate time step (dt) using the CFL criterion
-void Mesh2D::applyCFL () {
-  const double denom=(u.array().maxCoeff()/dx+v.array().maxCoeff()/dy);
-  dt=(denom==0)?CFL*(dx+dy):CFL/denom;
 }
 
 double Mesh2D::getDt() const {return dt;}
@@ -247,11 +235,14 @@ void Mesh2D::resetPBoundary() {
 
 //performs an iteration of one time step
 void Mesh2D::doIteration() {
-  applyCFL();
+  //finds an appropriate time step (dt) using the CFL criterion
+  const double denom=(u.array().maxCoeff()/dx+v.array().maxCoeff()/dy);
+  dt=(denom==0)?CFL*(dx+dy):CFL/denom;
+
   //setting the boundary during each iteration is necessary if there are Neumann conditions.
   resetUBoundary();
   resetVBoundary();
-  resetPBoundary();
+  //resetPBoundary();
 
   //updates u_star and v_star in the Mesh2D structure
   //u_star, v_star are solutions to the momentum equation when pressure is ignored.
@@ -275,12 +266,11 @@ void Mesh2D::doIteration() {
   double error=tolerance;
   for (int i=0;i<=500;++i) {
     if (tolerance>error) {break;}
+    resetPBoundary();//necessary if there are Neumann conditions.
     auto p_old=p;
     p_xy=D_xy(p,dx,dy);
-    p.block(1,1,nrow,ncol)=p_xy*factor-
-      (rho*factor/dt)*(u_star_x+v_star_y);
+    p.block(1,1,nrow,ncol)=p_xy*factor-(rho*factor/dt)*(u_star_x+v_star_y);
     error=(p-p_old).array().abs().maxCoeff();
-    resetPBoundary();//necessary if there are Neumann conditions.
   }
 
   //Finally, solve the momentum equation
@@ -311,14 +301,15 @@ rainbowScale above. The function
 (4) places a white dot at the base of each vector
 *********************************/
 void Mesh2D::writeImage(const std::string& filename, const double min, const double max) const {
-  //create a grid to place flow vectors
-  std::vector<int> xpos, ypos;
   constexpr int width=7;//width/height of vectors
   constexpr int spacing=2;//spacing between vectors
+
+  //create a grid along which velocity vectors will be drawn
+  std::vector<int> xpos, ypos;
   for (int i=width+spacing;i<nrow-spacing;i+=2*width+spacing) xpos.push_back(i);
   for (int i=width+spacing;i<ncol-spacing;i+=2*width+spacing) ypos.push_back(i);
 
-  //find speed at eaceh point of the grid
+  //find speed at each point of the grid
   const matrix speed=(u.array().pow(2)+v.array().pow(2)).sqrt().matrix().block(1,1,nrow,ncol);
 
   //create image
@@ -338,8 +329,8 @@ void Mesh2D::writeImage(const std::string& filename, const double min, const dou
   image.fillColor("black");
   image.strokeWidth(.5);
   std::list<Magick::Drawable> drawList;
-  for (auto & x : xpos) {
-    for (auto & y : ypos) {
+  for (auto x : xpos) {
+    for (auto y : ypos) {
       if (u.coeff(x+1,y+1)!=0 || v.coeff(x+1,y+1)!=0)
         drawList.push_back(Magick::DrawableLine(x,y,x+int(width*u.coeff(x+1,y+1)/speed.coeff(x,y)),
                                                 y+int(width*v.coeff(x+1,y+1)/speed.coeff(x,y))));
@@ -348,8 +339,8 @@ void Mesh2D::writeImage(const std::string& filename, const double min, const dou
   image.draw(drawList);
 
   //add a white dot at each point of the grid where we have placed a vector above
-  for (auto & x : xpos) {
-    for (auto & y : ypos) {
+  for (auto x : xpos) {
+    for (auto y : ypos) {
       image.pixelColor(x,y,Magick::Color(MaxRGB,MaxRGB,MaxRGB,MaxRGB));
     }
   }

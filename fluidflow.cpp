@@ -12,8 +12,8 @@ Ghia et al. in
 
 This should run in ~1 min on a reasonably fast machine (no output).
 Final output for the benchmark should give
-MSE=0.000268503
-Average relative error: .00098211
+Average MSE=0.000267891
+Average relative error: .0628195
 **********/
 
 /*******************
@@ -32,7 +32,7 @@ ffmpeg -framerate 20 -pattern_type glob -i "res/*.png" -c:v libx264 -crf 0 outpu
 double sim_time=150;
 double fps=2;//approx frame rate for video output
 bool write_file=0;//write pressure and velocity matrices to file?
-bool write_image=1;//make a video?
+bool write_image=0;//make a video?
 double min_color=0;//sets color scale for image output
 double max_color=0.99;
 
@@ -114,7 +114,7 @@ int main() {
   /************************
   perform benchmark test:
   ************************/
-  //Ghia's 16 velocities with corresponding positions along the vertical median
+  //Ghia's 16 velocities with corresponding positions along the vertical median, horizontal median
   std::vector<double> x_g,y_g,u_g,v_g;
   y_g={0,0.0547,0.0625,0.0703,0.1016,0.1719,0.2813,0.4531,0.5,0.6172,0.7344,0.8516,0.9531,0.9609,0.9688,0.9766};
   u_g={0,-0.08186,-0.09266,-0.10338,-0.14612,-0.24299,-0.32726,-0.17119,-0.11477,0.02135,0.16256,0.29093,0.55892,0.61756,0.68439,0.75837};
@@ -124,18 +124,20 @@ int main() {
   //compute error from benchmark
   double mse=0;
   double rel=0;
+  double temp;
   auto mid_u=mesh.getU().block(1,floor(colpts/2),rowpts,1).array();
-  for (int i=0;i<u_g.size();i++) {
-    mse+=pow(u_g[i]-mid_u.coeff(floor(y_g[i]*rowpts),0),2);
-    rel+=abs(u_g[i]);
+  for (int i=1;i<u_g.size();i++) {
+    temp=mid_u.coeff(floor(y_g[i]*rowpts),0);
+    mse+=pow(u_g[i]-temp,2);
+    if(u_g[i]!=0) rel+=abs(1-temp/u_g[i]);
   }
 
   //print error from benchmark
   std::cout <<"Ghia et al. Cavity test benchmark results:\n";
-  std::cout<<"  MSE for horizontal component of velocity along vertical median: "
+  std::cout<<"  Average MSE for horizontal component of velocity along vertical median: "
     <<mse/u_g.size()<<"\n";
   std::cout<<"  Average relative error: "
-    <<mse/rel<<"\n\n";
+    <<rel/u_g.size()<<"\n\n";
 
   return 0;
 }
