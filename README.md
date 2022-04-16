@@ -32,7 +32,7 @@ The function _writeImage_ does the following:
 
 For example, the following image is produced from the lid cavity test near the 25 second mark.
 
-![sample image](https://user-images.githubusercontent.com/65519600/159061419-b3526b1d-a478-41d2-b7b7-8ae345c7f270.png)
+![img_050](https://user-images.githubusercontent.com/65519600/163690494-c56e42ad-43ef-44fd-b89a-d16f9762a505.png)
 
 
 Once images have been produced, ffmpeg users might create a lossless video from the output:
