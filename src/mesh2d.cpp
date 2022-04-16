@@ -313,14 +313,14 @@ void Mesh2D::writeImage(const std::string& filename, const double min, const dou
   const matrix speed=(u.array().pow(2)+v.array().pow(2)).sqrt().matrix().block(1,1,nrow,ncol);
 
   //create image
-  Magick::Image image(Magick::Geometry(nrow,ncol),Magick::Color(MaxRGB,MaxRGB,MaxRGB,0));
+  Magick::Image image(Magick::Geometry(ncol,nrow),Magick::Color(MaxRGB,MaxRGB,MaxRGB,0));
 
   //create rainbow-colored background to represent velocity at each grid point.
   RGBTuple color;
   for (int i=0;i<nrow;++i) {
     for (int j=0;j<ncol;++j) {
       color=rainbowScale(speed.coeff(i,j),min,max);
-      image.pixelColor(i,j,Magick::Color(color.r()*MaxRGB,color.g()*MaxRGB,color.b()*MaxRGB,MaxRGB));
+      image.pixelColor(j,i,Magick::Color(color.r()*MaxRGB,color.g()*MaxRGB,color.b()*MaxRGB,MaxRGB));
     }
   }
 
@@ -332,8 +332,10 @@ void Mesh2D::writeImage(const std::string& filename, const double min, const dou
   for (auto x : xpos) {
     for (auto y : ypos) {
       if (u.coeff(x+1,y+1)!=0 || v.coeff(x+1,y+1)!=0)
-        drawList.push_back(Magick::DrawableLine(x,y,x+int(width*u.coeff(x+1,y+1)/speed.coeff(x,y)),
-                                                y+int(width*v.coeff(x+1,y+1)/speed.coeff(x,y))));
+        drawList.push_back(Magick::DrawableLine(y,x,
+                                                y+int(width*u.coeff(x+1,y+1)/speed.coeff(x,y)),
+                                                x+int(width*v.coeff(x+1,y+1)/speed.coeff(x,y))
+                                              ));
     }
   }
   image.draw(drawList);
@@ -341,9 +343,11 @@ void Mesh2D::writeImage(const std::string& filename, const double min, const dou
   //add a white dot at each point of the grid where we have placed a vector above
   for (auto x : xpos) {
     for (auto y : ypos) {
-      image.pixelColor(x,y,Magick::Color(MaxRGB,MaxRGB,MaxRGB,MaxRGB));
+      image.pixelColor(y,x,Magick::Color(MaxRGB,MaxRGB,MaxRGB,MaxRGB));
     }
   }
+
+  image.flip();
 
   //write image to file
   try {
